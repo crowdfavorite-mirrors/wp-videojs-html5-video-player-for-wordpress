@@ -1,14 +1,14 @@
 <?php
 /**
  * @package Video.js
- * @version 3.2.3
+ * @version 4.2.0
  */
 /*
 Plugin Name: Video.js - HTML5 Video Player for WordPress
 Plugin URI: http://videojs.com/
-Description: A video plugin for WordPress built on the widely used Video.js HTML5 video player library. Allows you to embed video in your post or page using HTML5 with Flash fallback support for non-HTML5 browsers.
+Description: Self-hosted responsive HTML5 video for WordPress, built on the widely used Video.js HTML5 video player library. Allows you to embed video in your post or page using HTML5 with Flash fallback support for non-HTML5 browsers.
 Author: <a href="http://www.nosecreekweb.ca">Dustin Lammiman</a>, <a href="http://steveheffernan.com">Steve Heffernan</a>
-Version: 3.2.3
+Version: 4.2.0
 */
 
 
@@ -19,39 +19,70 @@ $plugin_dir = plugin_dir_path( __FILE__ );
 include_once($plugin_dir . 'admin.php');
 
 
+/* Useful Functions */
+include_once($plugin_dir . 'lib.php');
+
+
 /* Include the script and css file in the page <head> */
 function add_videojs_header(){
-	$options = get_option('videojs_options');
 	
-	if($options['videojs_cdn'] == 'on') { //use the cdn hosted version
-		wp_register_script( 'videojs', 'http://vjs.zencdn.net/c/video.js' );
-		wp_enqueue_script( 'videojs' );
-		
-		wp_register_style( 'videojs', 'http://vjs.zencdn.net/c/video-js.css' );
-		wp_enqueue_style( 'videojs' );
-	} else { //use the self hosted version
-		wp_register_script( 'videojs', plugins_url( 'videojs/video.min.js' , __FILE__ ) );
-		wp_enqueue_script( 'videojs' );
-		
-		wp_register_style( 'videojs', plugins_url( 'videojs/video-js.min.css' , __FILE__ ) );
-		wp_enqueue_style( 'videojs' );
-	}
+	global $post;
+	if( !function_exists('has_shortcode') || has_shortcode( $post->post_content, 'videojs') || has_shortcode( $post->post_content, 'video')) {
 	
-	if($options['videojs_responsive'] == 'on') { //include the responsive stylesheet
-		wp_register_style( 'responsive-videojs', plugins_url('responsive-video.css', __FILE__) );
-		wp_enqueue_style( 'responsive-videojs' );
+		$options = get_option('videojs_options');
+		
+		wp_register_style( 'videojs-plugin', plugins_url( 'plugin-styles.css' , __FILE__ ) );
+		wp_enqueue_style( 'videojs-plugin' );
+		
+		if($options['videojs_cdn'] == 'on') { //use the cdn hosted version
+			wp_register_script( 'videojs', 'http://vjs.zencdn.net/4.2/video.js' );
+			wp_enqueue_script( 'videojs' );
+			
+			wp_register_style( 'videojs', 'http://vjs.zencdn.net/4.2/video-js.css' );
+			wp_enqueue_style( 'videojs' );
+		} else { //use the self hosted version
+			wp_register_script( 'videojs', plugins_url( 'videojs/video.js' , __FILE__ ) );
+			wp_enqueue_script( 'videojs' );
+			
+			wp_register_style( 'videojs', plugins_url( 'videojs/video-js.css' , __FILE__ ) );
+			wp_enqueue_style( 'videojs' );
+		}
+		
+		if($options['videojs_responsive'] == 'on') { //include the responsive stylesheet
+			wp_register_style( 'responsive-videojs', plugins_url('responsive-video.css', __FILE__) );
+			wp_enqueue_style( 'responsive-videojs' );
+		}
 	}
 }
 add_action( 'wp_enqueue_scripts', 'add_videojs_header' );
+
+
+/* Include custom color styles in the site header */
+function videojs_custom_colors() {
+	$options = get_option('videojs_options');
+	
+	if($options['videojs_color_one'] != "#ccc" || $options['videojs_color_two'] != "#66A8CC" || $options['videojs_color_three'] != "#000") { //If custom colors are used
+		$color3 = hex2RGB($options['videojs_color_three'], true); //Background color is rgba
+		echo "
+	<style type='text/css'>
+		.vjs-default-skin { color: " . $options['videojs_color_one'] . " }
+		.vjs-default-skin .vjs-play-progress, .vjs-default-skin .vjs-volume-level { background-color: " . $options['videojs_color_two'] . " }
+		.vjs-default-skin .vjs-control-bar, .vjs-default-skin .vjs-big-play-button { background: rgba(" . $color3 . ",0.7) }
+		.vjs-default-skin .vjs-slider { background: rgba(" . $color3 . ",0.2333333333333333) }
+	</style>
+		";
+	}
+}
+add_action( 'wp_head', 'videojs_custom_colors' );
 
 
 /* Prevent mixed content warnings for the self-hosted version */
 function add_videojs_swf(){
 	$options = get_option('videojs_options');
 	if($options['videojs_cdn'] != 'on') {
-	echo '
+		echo '
 		<script type="text/javascript">
-			VideoJS.options.flash.swf = "'. plugins_url( 'videojs/video-js.swf' , __FILE__ ) .'";
+			videojs.options.flash.swf = "'. plugins_url( 'videojs/video-js.swf' , __FILE__ ) .'";
 		</script>
 		';
 	}
@@ -59,7 +90,7 @@ function add_videojs_swf(){
 add_action('wp_head','add_videojs_swf');
 
 
-/* The [video] shortcode */
+/* The [video] or [videojs] shortcode */
 function video_shortcode($atts, $content=null){
 	
 	$options = get_option('videojs_options'); //load the defaults
@@ -144,6 +175,7 @@ function video_shortcode($atts, $content=null){
 		$track = "";
 
 
+	//Output the <video> tag
 	$videojs = <<<_end_
 
 	<!-- Begin Video.js -->
@@ -157,11 +189,15 @@ function video_shortcode($atts, $content=null){
 _end_;
 	
 	if($options['videojs_responsive'] == 'on') { //add the responsive wrapper
-		$ratio = $height/$width*100;
+		
+		$ratio = ($height && $width) ? $height/$width*100 : 56.25; //Set the aspect ratio (default 16:9)
+		
+		$maxwidth = ($width) ? "max-width:{$width}px" : ""; //Set the max-width
+		
 		$videojs = <<<_end_
 		
 		<!-- Begin Video.js Responsive Wrapper -->
-		<div style='max-width:{$width}px;'>
+		<div style='{$maxwidth}'>
 			<div class='video-wrapper' style='padding-bottom:{$ratio}%;'>
 				{$videojs}
 			</div>
@@ -174,7 +210,12 @@ _end_;
 	return $videojs;
 
 }
-add_shortcode('video', 'video_shortcode');
+add_shortcode('videojs', 'video_shortcode');
+//Only use the [video] shortcode if the correct option is set
+$options = get_option('videojs_options');
+if( !array_key_exists('videojs_video_shortcode', $options) || $options['videojs_video_shortcode'] ){
+	add_shortcode('video', 'video_shortcode');
+}
 
 
 /* The [track] shortcode */
