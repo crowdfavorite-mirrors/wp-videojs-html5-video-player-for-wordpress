@@ -1,10 +1,12 @@
 === Video.js - HTML5 Video Player for Wordpress ===
-Contributors: nosecreek, Steve Heffernan
-Donate link: http://videojs.com/
+Contributors: nosecreek, Steve Heffernan, schnere
+Donate link: http://ncrk.ca/videojs
 Tags: html5, video, player, javascript
 Requires at least: 2.7
-Tested up to: 3.6.1
-Stable tag: 4.2.0
+Tested up to: 3.9
+Stable tag: 4.5.0
+License: LGPLv3
+License URI: http://www.gnu.org/licenses/lgpl-3.0.html
 
 Self-hosted responsive HTML5 video for WordPress, built on the widely used Video.js HTML5 video player. Embed video in your post or page using HTML5.
 
@@ -39,6 +41,11 @@ The location of the Theora/Ogg source for the video.
 The location of the VP8/WebM source for the video.
 
     [videojs webm="http://video-js.zencoder.com/oceans-clip.webm"]
+    
+### youtube
+The location of the YouTube source for the video.
+
+    [videojs youtube="http://www.youtube.com/watch?v=DJU6ppZAaec"]
 
 ### poster
 The location of the poster frame for the video.
@@ -75,7 +82,12 @@ Causes the video to start over as soon as it ends. Use 'true' or 'false'.
 Use 'false' to hide the player controls.
 
     [videojs controls="false"]
-    
+
+### muted
+Use 'true' to initially mute video.
+
+    [videojs muted="true"]
+        
 ### id
 Add a custom ID to your video player.
 
@@ -93,7 +105,7 @@ Text Tracks are a function of HTML5 video for providing time triggered text to t
 
 ### All Attributes Example
 
-    [videojs mp4="http://video-js.zencoder.com/oceans-clip.mp4" ogg="http://video-js.zencoder.com/oceans-clip.ogg" webm="http://video-js.zencoder.com/oceans-clip.webm" poster="http://video-js.zencoder.com/oceans-clip.png" preload="auto" autoplay="true" width="640" height="264" id="movie-id" class="alignleft" controls="false"][track kind="captions" src="http://example.com/path/to/captions.vtt" srclang="en" label="English" default="true"][/videojs]
+    [videojs mp4="http://video-js.zencoder.com/oceans-clip.mp4" ogg="http://video-js.zencoder.com/oceans-clip.ogg" webm="http://video-js.zencoder.com/oceans-clip.webm" poster="http://video-js.zencoder.com/oceans-clip.png" preload="auto" autoplay="true" width="640" height="264" id="movie-id" class="alignleft" controls="false" muted="true"][track kind="captions" src="http://example.com/path/to/captions.vtt" srclang="en" label="English" default="true"][/videojs]
     
 
 ##Video.js Settings Screen
@@ -106,6 +118,23 @@ Uncheck the *Use the [video] shortcode?* option __only__ if you are using WordPr
 
 
 == Changelog ==
+
+= 4.5.0 =
+
+* Updated to use Video.js 4.5
+* Various fixes for YouTube videos
+* Changed the way js/css is loaded to allow use of do_shortcode()
+* Added Muted option
+
+= 4.3.1 =
+
+* Fixed a bug with YouTube videos
+
+= 4.3.0 =
+
+* Updated to use Video.js 4.3
+* Added YouTube plugin for video.js
+* Added option to select YouTube video source
 
 = 4.2.0 =
 
